@@ -14,7 +14,17 @@ TG 频道：<https://t.me/fuck_miaomiaowux>
 curl -fsSL https://raw.githubusercontent.com/zako-li/miaomiaowux/main/install.sh | sudo bash
 ```
 
-装完浏览器打开 `http://<你的服务器IP>:12889`，走初始化向导创建管理员账号。
+装完浏览器打开 **`http://<你的服务器IP>:12889/login`**
+
+- **第一次打开是注册页** —— 显示「这是首次启动，请创建管理员账号」，
+  填好用户名密码点「创建管理员账号」就行，**首个注册的用户自动成为管理员**。
+- 以后同一个地址就是登录页。
+
+> ⚠️ **地址一定要带 `/login`。**
+> 根路径 `/` 是「探针伪装页」（对外伪装用的，默认没开），
+> **不管有没有初始化过**，只要没登录，直接开 `/` 都只会看到一句
+> **「探针暂时无法访问」** —— 这不是装坏了，面板一直在 `/login`。
+> 想让 `/` 也有内容，登录后去 系统设置 → 探针 里把探针打开。
 
 **换端口 / 数据目录**（只在首次安装时生效）：
 
@@ -69,6 +79,10 @@ curl -fsSL https://raw.githubusercontent.com/zako-li/miaomiaowux/main/upgrade-ag
 ---
 
 ## 常见问题
+
+**打开 IP:12889 显示「探针暂时无法访问」？**
+正常现象 —— `/` 是探针伪装页。面板在 **`/login`**，地址后面加上 `/login` 即可：
+第一次进去是「创建管理员账号」（注册），之后是登录。
 
 **面板装在哪？**
 程序 `/usr/local/bin/mmwx`，服务 `mmwx`，数据默认 `/etc/mmwx/data`。
