@@ -8,7 +8,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/zako-li/miaomiaowux/main/upgrade-agent.sh | bash
 #
 # 参数:
-#   --version <tag>   指定版本，例 mmwx-agent-v0.5.9；默认装最新
+#   --version <tag>   指定 release 的 tag，例 mmwx-agent；默认自动找
 #   --binary <文件>   直接用本地二进制，不联网下载
 #
 # 环境变量:
@@ -20,7 +20,8 @@
 set -euo pipefail
 
 REPO="${MMWX_REPO:-zako-li/miaomiaowux}"
-TAG_PREFIX="mmwx-agent-v"
+# Agent release 的 tag：固定用 mmwx-agent；也兼容 mmwx-agent-v<版本> 的写法。
+TAG_MATCH="^(mmwx-agent|mmwx-agent-v.*)$"
 ASSET_BASE="mmwx-agent-linux"
 BIN_PATH="/usr/local/bin/mmw-agent"
 
@@ -73,8 +74,8 @@ else
                  "https://api.github.com/repos/${REPO}/releases?per_page=100" 2>/dev/null \
                | grep -o '"tag_name":[[:space:]]*"[^"]*"' \
                | sed 's/.*"tag_name":[[:space:]]*"//; s/"$//' \
-               | grep "^${TAG_PREFIX}" | head -n 1 || true)"
-        [ -n "$TAG" ] || die "没查到 ${TAG_PREFIX}* 的 Release（可能 API 限流）。用 --version mmwx-agent-vX.Y.Z 指定"
+               | grep -E "$TAG_MATCH" | head -n 1 || true)"
+        [ -n "$TAG" ] || die "没查到 Agent 的 Release（tag 应为 mmwx-agent）。可能是 GitHub API 限流；也可以 --version <tag> 直接指定"
         ok "最新版本: $TAG"
     fi
     URL="$(gh_url "https://github.com/${REPO}/releases/download/${TAG}/${ASSET_BASE}-${ARCH}")"

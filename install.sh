@@ -10,7 +10,7 @@
 # 常用参数（放在命令最后，例：... | bash -s -- --port 8080）:
 #   --port <端口>        面板监听端口，默认 12889（仅首次安装生效）
 #   --data-dir <目录>    数据目录，默认 /etc/mmwx/data（仅首次安装生效）
-#   --version <tag>      指定版本，例 mmwx-v0.4.8-beta.18；默认装最新
+#   --version <tag>      指定 release 的 tag，例 mmwx；默认自动找
 #   --binary <文件>      直接用本地二进制安装，不联网下载
 #
 # 可选环境变量:
@@ -20,7 +20,9 @@
 set -euo pipefail
 
 REPO="${MMWX_REPO:-zako-li/miaomiaowux}"
-TAG_PREFIX="mmwx-v"           # 面板版本 tag 前缀（Agent 是 mmwx-agent-v，不会撞）
+# 面板 release 的 tag：固定用 mmwx（滚动 release，版本号写在 release 名字里）。
+# 也兼容「每版一个 tag」的 mmwx-v0.4.8-beta.18 写法。mmwx-agent* 不会被误命中。
+TAG_MATCH="^(mmwx|mmwx-v.*)$"
 ASSET_BASE="mmwx-linux"       # 资产名 mmwx-linux-amd64 / mmwx-linux-arm64
 BIN_PATH="/usr/local/bin/mmwx"
 UNIT_PATH="/etc/systemd/system/mmwx.service"
@@ -82,13 +84,13 @@ gh_url() { # gh_url <完整github地址> -> 套上可选加速前缀
     if [ -n "$proxy" ]; then echo "${proxy%/}/$1"; else echo "$1"; fi
 }
 
-# 从 Releases 里挑出 tag 以 mmwx-v 开头的最新一条。GitHub 返回按时间倒序，取第一个即可。
+# 从 Releases 里挑出面板那条（tag = mmwx，或老写法 mmwx-v*）。GitHub 返回按时间倒序，取第一个即可。
 resolve_latest_tag() {
     local api="https://api.github.com/repos/${REPO}/releases?per_page=100"
     curl -fsSL --connect-timeout 15 --max-time 60 -H 'Accept: application/vnd.github+json' "$api" 2>/dev/null \
         | grep -o '"tag_name":[[:space:]]*"[^"]*"' \
         | sed 's/.*"tag_name":[[:space:]]*"//; s/"$//' \
-        | grep "^${TAG_PREFIX}" \
+        | grep -E "$TAG_MATCH" \
         | head -n 1
 }
 
@@ -139,7 +141,7 @@ else
     if [ -z "$TAG" ]; then
         info "查询最新版本..."
         TAG="$(resolve_latest_tag || true)"
-        [ -n "$TAG" ] || die "没查到 ${TAG_PREFIX}* 的 Release。可能是 API 限流或还没发版；用 --version mmwx-vX.Y.Z 指定"
+        [ -n "$TAG" ] || die "没查到面板的 Release（tag 应为 mmwx）。可能是 GitHub API 限流或还没发版；也可以 --version <tag> 直接指定"
         ok "最新版本: $TAG"
     fi
     download_binary "$TAG" "$ARCH" "$NEW_BIN"
