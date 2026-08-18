@@ -14,7 +14,57 @@ TG 频道：<https://t.me/fuck_miaomiaowux>
 curl -fsSL https://raw.githubusercontent.com/zako-li/miaomiaowux/main/install.sh | sudo bash
 ```
 
-装完浏览器打开 **`http://<你的服务器IP>:12889/login`**
+### ‼️ 装完先看这里：必须用 HTTPS 或 localhost 访问
+
+面板的 API 走加密通道，依赖浏览器的 **WebCrypto**，而浏览器**只在 HTTPS 或 localhost 下**才提供它。
+
+所以直接开 `http://你的IP:12889` 或 `http://你的域名:12889` 会出现：
+
+> **明明是全新安装，打开却是「登录」界面，不是注册界面**；输入什么都登不进去。
+
+这不是装坏了 —— 是浏览器把 `crypto.subtle` 禁掉了，前端所有请求失败后 fallback 成了登录框。
+
+**两个办法，选一个：**
+
+**① 先用 SSH 隧道进去建号（最快，什么都不用配）**
+
+在你自己电脑上开个终端：
+
+```bash
+ssh -L 12889:127.0.0.1:12889 root@你的服务器
+```
+
+窗口别关，本地浏览器打开 **`http://127.0.0.1:12889/login`** —— localhost 是浏览器特例，
+算安全上下文，能正常注册和登录。
+
+**② 套 HTTPS（长期用这个）**
+
+有域名的话，用 Caddy 最省事（自动申请证书，需要 80/443 端口没被占）：
+
+```bash
+apt install -y caddy
+```
+
+`/etc/caddy/Caddyfile`：
+
+```
+你的域名 {
+    reverse_proxy 127.0.0.1:12889
+}
+```
+
+```bash
+systemctl restart caddy
+```
+
+之后访问 `https://你的域名/login` 即可。
+（面板自带证书管理，但要先能登录进去才能配，所以第一次还是得靠上面两个办法之一。）
+
+---
+
+### 访问地址
+
+**`https://你的域名/login`**（或隧道下的 `http://127.0.0.1:12889/login`）
 
 - **第一次打开是注册页** —— 显示「这是首次启动，请创建管理员账号」，
   填好用户名密码点「创建管理员账号」就行，**首个注册的用户自动成为管理员**。
@@ -79,6 +129,11 @@ curl -fsSL https://raw.githubusercontent.com/zako-li/miaomiaowux/main/upgrade-ag
 ---
 
 ## 常见问题
+
+**全新安装，打开却是登录页不是注册页？登录也进不去？**
+你在用 `http://IP:端口` 访问。面板的加密通道要 WebCrypto，浏览器只在 **HTTPS 或 localhost** 下才给，
+所以请求全失败、前端 fallback 成了登录框。解决办法见上面「必须用 HTTPS 或 localhost 访问」。
+判断方法：F12 控制台执行 `window.isSecureContext`，返回 `false` 就是这个问题。
 
 **打开 IP:12889 显示「探针暂时无法访问」？**
 正常现象 —— `/` 是探针伪装页。面板在 **`/login`**，地址后面加上 `/login` 即可：
